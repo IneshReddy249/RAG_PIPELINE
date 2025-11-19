@@ -19,7 +19,7 @@ def retrieve_relevant_chunks(
     retriever = index.as_retriever(similarity_top_k=top_k)
     nodes = retriever.retrieve(query)
     
-    print(f"✅ Retrieved {len(nodes)} chunks")
+    print(f" Retrieved {len(nodes)} chunks")
     for i, node in enumerate(nodes, 1):
         print(f"   {i}. Score: {node.score:.4f} | Length: {len(node.text)} chars")
     
@@ -50,7 +50,7 @@ def rerank_with_nvidia(
     # Rerank nodes
     reranked = reranker.postprocess_nodes(nodes, query_str=query)
     
-    print(f"✅ Reranked to top {len(reranked)} chunks")
+    print(f" Reranked to top {len(reranked)} chunks")
     for i, node in enumerate(reranked, 1):
         print(f"   {i}. Score: {node.score:.4f} | Length: {len(node.text)} chars")
     
@@ -60,7 +60,7 @@ def rerank_with_nvidia(
 def format_context(nodes: List[NodeWithScore]) -> str:
     """Format chunks into context string for LLM."""
     if not nodes:
-        print("⚠️  Warning: No chunks to format")
+        print("  Warning: No chunks to format")
         return ""
     
     context_parts = []
@@ -68,7 +68,7 @@ def format_context(nodes: List[NodeWithScore]) -> str:
         context_parts.append(f"[Chunk {i}]:\n{node.text}\n")
     
     context = "\n".join(context_parts)
-    print(f"📝 Context: {len(nodes)} chunks, {len(context)} chars")
+    print(f" Context: {len(nodes)} chunks, {len(context)} chars")
     return context
 
 
