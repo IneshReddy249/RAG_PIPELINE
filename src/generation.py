@@ -13,7 +13,7 @@ def initialize_llm():
         max_tokens=config.MAX_TOKENS
     )
     Settings.llm = llm
-    print("✅ LLM initialized")
+    print(" LLM initialized")
     return llm
 
 def generate_with_metadata(query: str, context: str, nodes: list, llm=None) -> dict:
@@ -38,7 +38,7 @@ Question: {query}
 
 Answer:"""
     
-    print("🤖 Generating response...")
+    print(" Generating response...")
     response = llm.complete(prompt)
     
     return {
