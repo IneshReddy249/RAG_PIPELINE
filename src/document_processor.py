@@ -21,7 +21,7 @@ def load_documents(data_dir: Path) -> List[Document]:
     )
     
     documents = reader.load_data()
-    print(f"✅ Loaded {len(documents)} documents")
+    print(f"Loaded {len(documents)} documents")
     
     return documents
 
@@ -42,8 +42,8 @@ def chunk_documents(documents: List[Document]) -> List:
     
     nodes = splitter.get_nodes_from_documents(documents)
     
-    print(f"✅ Created {len(nodes)} chunks")
-    print(f"📊 Avg chunk size: {sum(len(n.text) for n in nodes) // len(nodes)} chars")
+    print(f"Created {len(nodes)} chunks")
+    print(f"Avg chunk size: {sum(len(n.text) for n in nodes) // len(nodes)} chars")
     
     return nodes
 
@@ -60,4 +60,4 @@ def process_documents() -> List:
 
 if __name__ == "__main__":
     nodes = process_documents()
-    print(f"\n✅ Processing complete: {len(nodes)} chunks ready for embedding")
+    print(f"\n Processing complete: {len(nodes)} chunks ready for embedding")
