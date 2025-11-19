@@ -40,7 +40,7 @@ async def startup():
     except:
         pass
     _llm = initialize_llm()
-    print("✅ Server ready with security guardrails")
+    print(" Server ready with security guardrails")
 
 @app.post("/upload")
 async def upload(file: UploadFile = File(...)):
