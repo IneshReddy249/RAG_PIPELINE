@@ -12,7 +12,7 @@ def initialize_vector_store():
     Initialize ChromaDB and create/load collection.
     Returns the vector store instance.
     """
-    print("🗄️  Initializing ChromaDB...")
+    print("  Initializing ChromaDB...")
     
     # Create Chroma client
     db = chromadb.PersistentClient(path=str(config.CHROMA_DB_DIR))
@@ -25,7 +25,7 @@ def initialize_vector_store():
     # Wrap in LlamaIndex vector store
     vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
     
-    print(f"✅ ChromaDB initialized: {config.CHROMA_COLLECTION_NAME}")
+    print(f" ChromaDB initialized: {config.CHROMA_COLLECTION_NAME}")
     return vector_store
 
 
@@ -53,7 +53,7 @@ def embed_and_store(nodes: List) -> VectorStoreIndex:
         show_progress=True
     )
     
-    print(f"✅ Embedded and stored {len(nodes)} chunks")
+    print(f" Embedded and stored {len(nodes)} chunks")
     return index
 
 
@@ -62,7 +62,7 @@ def load_existing_index() -> VectorStoreIndex:
     Load existing index from ChromaDB without re-embedding.
     Use this after initial ingestion.
     """
-    print("📥 Loading existing index from ChromaDB...")
+    print(" Loading existing index from ChromaDB...")
     
     # Configure embedding model
     Settings.embed_model = OpenAIEmbedding(
@@ -76,7 +76,7 @@ def load_existing_index() -> VectorStoreIndex:
     # Create index from existing store
     index = VectorStoreIndex.from_vector_store(vector_store)
     
-    print("✅ Index loaded successfully")
+    print(" Index loaded successfully")
     return index
 
 
@@ -87,4 +87,4 @@ if __name__ == "__main__":
     nodes = process_documents()
     index = embed_and_store(nodes)
     
-    print("\n✅ Embedding pipeline complete!")
+    print("\n Embedding pipeline complete!")
