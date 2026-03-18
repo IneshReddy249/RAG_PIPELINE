@@ -1,390 +1,235 @@
-# 🚀 RAG Pipeline with Conversation Memory & Security
+# RAG Pipeline with Conversation Memory & Security
 
-A production-ready Retrieval-Augmented Generation (RAG) system built with LlamaIndex, Nvidia LLMs, and FastAPI. Upload documents, ask questions, and get accurate answers with conversation memory and built-in security guardrails.
+Production RAG system built with LlamaIndex, NVIDIA LLMs, and FastAPI. 
+Upload documents, ask questions, get accurate answers with conversation 
+memory and security guardrails.
 
-## ✨ Features
+This project sits at the application layer above inference engines — 
+contrasting with the GPU-level optimization work in my other repos. 
+It demonstrates how optimized inference infrastructure gets consumed 
+in a real system, and what application-level concerns (retrieval quality, 
+security, session management) look like in practice.
 
-- 📄 **Document Processing**: Upload PDF, TXT, and Markdown files
-- 🔍 **Semantic Search**: Find relevant information using embeddings
-- 💬 **Conversation Memory**: Natural follow-up questions with context retention
-- 🛡️ **Security Guardrails**: Protection against malicious queries and attacks
-- ⚡ **Fast API**: RESTful endpoints with automatic documentation
-- 🎯 **Smart Chunking**: Optimized for academic papers and technical documents
-- 📊 **Source Attribution**: See which documents answered your questions
+---
 
-## 🏗️ Architecture
+## Features
 
+- **Document Processing** — PDF, TXT, and Markdown ingestion
+- **Semantic Search** — Embedding-based retrieval via ChromaDB
+- **Conversation Memory** — Multi-turn Q&A with session context
+- **Security Guardrails** — Prompt injection, PII extraction, rate limiting
+- **Source Attribution** — Every answer cites which chunks it used
+- **REST API** — FastAPI with auto-generated Swagger docs
+
+---
+
+## Architecture
 ```
-┌─────────────┐
-│   Upload    │ → Security check → Documents stored in data/raw/
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│  Processing │ → Split into 1024-token chunks
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│  Embedding  │ → OpenAI text-embedding-3-large
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│  ChromaDB   │ → Vector storage with similarity search
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│   Query     │ → Security check → Retrieve top-K chunks
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│  Generate   │ → Nvidia Llama 3.1 70B → Sanitize response
-└─────────────┘
+Upload → Security check → data/raw/
+       ↓
+Processing → 1024-token chunks with 200-token overlap
+       ↓
+Embedding → OpenAI text-embedding-3-large → ChromaDB
+       ↓
+Query → Security check → top-K retrieval (cosine similarity)
+       ↓
+Generate → NVIDIA Llama-3.1-70B → response sanitization
 ```
 
-## 🛡️ Security Features
+---
 
-- **Query Protection**: Blocks prompt injections, harmful content, and PII extraction attempts
-- **Rate Limiting**: 10 queries per minute per session
-- **File Validation**: Size limits (50MB), extension whitelist, path traversal prevention
-- **Response Sanitization**: Automatically removes emails, phone numbers, and API keys
-- **Attack Detection**: Pattern-based detection for malicious inputs
+## Security Layer
 
-## 📋 Prerequisites
+| Threat | Protection | Example |
+|--------|------------|---------|
+| Prompt injection | Pattern detection | "Ignore previous instructions" → Blocked |
+| Harmful content | Keyword filtering | Blocked at query time |
+| PII extraction | Query analysis | "List all emails" → Blocked |
+| DOS | Rate limiting | 10 queries/min per session |
+| Large files | Size validation | 50MB limit |
+| Path traversal | Filename sanitization | `../secret.txt` → Blocked |
+| Data leaks | Response sanitization | Emails/phones redacted |
+
+Security overhead: <1ms per request.
+
+---
+
+## Tech Stack
+
+| Component | Technology |
+|-----------|------------|
+| RAG Framework | LlamaIndex 0.10.68 |
+| LLM | NVIDIA NIM — Llama-3.1-70B |
+| Embeddings | OpenAI text-embedding-3-large |
+| Vector Store | ChromaDB 0.4.24 |
+| API | FastAPI + Uvicorn |
+| Deployment | AWS |
+
+---
+
+## Prerequisites
 
 - Python 3.11 or 3.12
-- OpenAI API key (for embeddings)
-- Nvidia API key (for LLM)
+- OpenAI API key (embeddings)
+- NVIDIA API key (LLM)
 
-## 🚀 Quick Start
+---
+
+## Quick Start
 
 ### 1. Clone and Setup
-
 ```bash
-git clone <your-repo>
+git clone https://github.com/IneshReddy249/RAG_PIPELINE.git
 cd RAG_PIPELINE
 
-# Create virtual environment
 python3.11 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
 ### 2. Configure Environment
-
-Create `.env` file in project root:
-
 ```bash
-# API Keys (REQUIRED)
-OPENAI_API_KEY=sk-your-openai-key-here
-NVIDIA_API_KEY=nvapi-your-nvidia-key-here
+# .env
+OPENAI_API_KEY=sk-your-key
+NVIDIA_API_KEY=nvapi-your-key
 
-# Database
 CHROMA_DB_PATH=./data/chroma_db
 CHROMA_COLLECTION_NAME=rag_documents
-
-# Embedding
 EMBEDDING_MODEL=text-embedding-3-large
 
-# Chunking (optimized for quality)
 CHUNK_SIZE=1024
 CHUNK_OVERLAP=200
-
-# Retrieval (balanced for accuracy)
 TOP_K_RESULTS=10
 SIMILARITY_THRESHOLD=0.5
 
-# LLM Generation
 LLM_MODEL=meta/llama-3.1-70b-instruct
 LLM_TEMPERATURE=0.1
 MAX_TOKENS=1024
 LLM_BASE_URL=https://integrate.api.nvidia.com/v1
 ```
 
-### 3. Run the Server
-
+### 3. Run
 ```bash
 uvicorn api:app --reload
+# API: http://localhost:8000
+# Docs: http://localhost:8000/docs
 ```
 
-API will be available at: `http://localhost:8000`
+---
 
-Swagger UI: `http://localhost:8000/docs`
+## API Usage
 
-## 📖 API Usage
-
-### Upload a Document
-
+### Upload Document
 ```bash
 curl -X POST "http://localhost:8000/upload" \
-  -H "Content-Type: multipart/form-data" \
   -F "file=@your_document.pdf"
 ```
-
-**Response:**
 ```json
-{
-  "status": "ready",
-  "file": "your_document.pdf",
-  "chunks": 47,
-  "time": 12.3
-}
+{"status": "ready", "file": "doc.pdf", "chunks": 47, "time": 12.3}
 ```
 
-### Ask a Question (First in Conversation)
-
+### Query
 ```bash
 curl -X POST "http://localhost:8000/query" \
   -H "Content-Type: application/json" \
-  -d '{
-    "query": "What are the main causes of LLM hallucinations?"
-  }'
+  -d '{"query": "What causes LLM hallucinations?"}'
 ```
-
-**Response:**
 ```json
 {
-  "answer": "According to the document, LLM hallucinations have three main causes: (1) Data-related issues including misinformation and biases...",
-  "sources": [
-    {
-      "id": 1,
-      "text": "LLM hallucinations have multifaceted origins...",
-      "score": 0.556
-    }
-  ],
+  "answer": "Three main causes: data quality issues...",
+  "sources": [{"id": 1, "text": "...", "score": 0.556}],
   "time": 3.2,
   "session_id": "session_1234567890"
 }
 ```
 
-### Follow-Up Question (With Memory)
-
+### Follow-up (with memory)
 ```bash
 curl -X POST "http://localhost:8000/query" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query": "How can we prevent the first one?",
-    "session_id": "session_1234567890"
-  }'
+  -d '{"query": "How do we prevent the first one?",
+       "session_id": "session_1234567890"}'
 ```
 
-The bot understands "the first one" refers to data-related issues from the previous answer.
+---
 
-### View Conversation History
-
+## Configuration Reference
 ```bash
-curl -X GET "http://localhost:8000/conversation/session_1234567890"
+# Chunking
+CHUNK_SIZE=1024        # tokens per chunk
+CHUNK_OVERLAP=200      # overlap between chunks
+
+# Retrieval
+TOP_K_RESULTS=10       # chunks retrieved per query
+SIMILARITY_THRESHOLD=0.5  # minimum cosine similarity
+
+# LLM
+LLM_TEMPERATURE=0.1    # lower = more factual
+MAX_TOKENS=1024        # max response length
 ```
 
-**Response:**
-```json
-{
-  "session_id": "session_1234567890",
-  "messages": [
-    {
-      "user": "What are the main causes?",
-      "assistant": "Three main causes: data, training, inference...",
-      "timestamp": "2024-11-17T12:00:00"
-    },
-    {
-      "user": "How can we prevent the first one?",
-      "assistant": "To prevent data-related issues...",
-      "timestamp": "2024-11-17T12:01:00"
-    }
-  ],
-  "count": 2
-}
-```
+---
 
-### Clear Conversation
-
-```bash
-curl -X DELETE "http://localhost:8000/conversation/session_1234567890"
-```
-
-## 📂 Project Structure
-
+## Project Structure
 ```
 RAG_PIPELINE/
-├── api.py                      # FastAPI application with endpoints
-├── guardrails.py              # Security guardrails (NEW)
-├── config.py                   # Configuration and environment variables
-├── requirements.txt            # Python dependencies
-├── .env                        # Environment variables (not in git)
-│
+├── api.py                    # FastAPI endpoints
+├── guardrails.py             # Security layer
+├── config.py                 # Environment config
+├── requirements.txt
 ├── src/
-│   ├── document_processor.py  # Load and chunk documents
-│   ├── embedding_storing.py   # Embed chunks and store in ChromaDB
-│   ├── retrieving.py          # Retrieve relevant chunks
-│   └── generation.py          # Generate answers with LLM
-│
+│   ├── document_processor.py
+│   ├── embedding_storing.py
+│   ├── retrieving.py
+│   └── generation.py
 └── data/
-    ├── raw/                   # Uploaded documents (PDF, TXT, MD)
-    └── chroma_db/             # Vector database (auto-created)
+    ├── raw/                  # Uploaded documents
+    └── chroma_db/            # Vector index (auto-created)
 ```
 
-## 🛡️ Security Guardrails
+---
 
-### Protected Against
-
-| Threat | Protection Method | Example |
-|--------|------------------|---------|
-| **Prompt Injection** | Pattern detection | "Ignore previous instructions" → Blocked |
-| **Harmful Content** | Keyword filtering | "How to make a bomb" → Blocked |
-| **PII Extraction** | Query analysis | "List all emails" → Blocked |
-| **DOS Attacks** | Rate limiting | 11th query in 1 min → Blocked |
-| **Large Files** | Size validation | 100MB file → Blocked (50MB limit) |
-| **Path Traversal** | Filename check | "../secret.txt" → Blocked |
-| **Data Leaks** | Response sanitization | Emails/phones → Redacted |
-
-### Rate Limits
-
-```
-Per Session:
-- Queries: 10 per minute
-- File Uploads: 5 per hour
-- File Size: 50MB maximum
-```
-
-### Customize Security
-
-Edit `guardrails.py`:
-
-```python
-# Change rate limit
-if len(recent) >= 20:  # 20 instead of 10
-
-# Change file size
-if size_bytes > 100 * 1024 * 1024:  # 100MB instead of 50MB
-
-# Add custom patterns
-BLOCKED_PATTERNS = [
-    r"\bignore\b.*(previous|all).*(instruction|rule|prompt)",
-    r"your custom pattern here",  # Add yours
-]
-```
-
-## 🔧 Configuration
-
-### Chunk Size
-
-Control how documents are split:
-
+## Testing Security
 ```bash
-# Larger chunks = more context, fewer pieces
-CHUNK_SIZE=1024        # Default: good for most documents
-CHUNK_SIZE=512         # Smaller: more precise retrieval
-CHUNK_SIZE=2048        # Larger: more context per chunk
-
-# Overlap between chunks (prevents losing info at boundaries)
-CHUNK_OVERLAP=200      # Default: 20% overlap
-```
-
-### Retrieval Settings
-
-```bash
-# Number of chunks to retrieve
-TOP_K_RESULTS=10       # Default: balanced
-TOP_K_RESULTS=5        # Fewer: faster, less context
-TOP_K_RESULTS=20       # More: comprehensive, slower
-
-# Minimum similarity score to include
-SIMILARITY_THRESHOLD=0.5   # Default: filters noise
-SIMILARITY_THRESHOLD=0.3   # Lower: more permissive
-SIMILARITY_THRESHOLD=0.7   # Higher: only high-quality matches
-```
-
-### LLM Settings
-
-```bash
-# Temperature (creativity vs consistency)
-LLM_TEMPERATURE=0.1    # Default: consistent, factual
-LLM_TEMPERATURE=0.0    # Deterministic (same answer every time)
-LLM_TEMPERATURE=0.7    # More creative (less consistent)
-
-# Max output length
-MAX_TOKENS=1024        # Default: medium answers
-MAX_TOKENS=512         # Shorter answers
-MAX_TOKENS=2048        # Longer, detailed answers
-```
-
-## 📊 Performance Benchmarks
-
-| Metric | Value |
-|--------|-------|
-| **Upload & Process** | ~10s per 20-page PDF |
-| **Query Response** | 3-5s (first query), 2-3s (cached) |
-| **Security Overhead** | <1ms per request |
-| **Similarity Scores** | 0.50-0.65 (typical for academic papers) |
-| **Memory Overhead** | ~5MB per 100 active sessions |
-| **Cost per Query** | ~$0.006 (embeddings + generation) |
-
-## 🎯 Use Cases
-
-### ✅ Excellent For
-
-- Academic paper analysis and Q&A
-- Technical documentation search
-- Internal knowledge bases (teams 2-50 people)
-- Research literature review
-- Policy/compliance document Q&A
-- Personal document assistant
-
-## 📚 Dependencies
-
-### Core
-
-- `llama-index==0.10.68` - RAG framework
-- `llama-index-embeddings-openai==0.1.6` - OpenAI embeddings
-- `llama-index-llms-nvidia==0.1.3` - Nvidia LLM integration
-- `llama-index-vector-stores-chroma==0.1.6` - ChromaDB vector store
-
-### Supporting
-
-- `fastapi==0.109.2` - API framework
-- `uvicorn==0.27.1` - ASGI server
-- `chromadb==0.4.24` - Vector database
-- `pypdf==4.0.1` - PDF parsing
-- `python-dotenv==1.0.1` - Environment variables
-- `python-multipart` - File upload support
-
-## 🧪 Testing
-
-### Test Security Guardrails
-
-```bash
-# Run guardrails tests
 python guardrails.py
 
-# Expected output:
-✅ What causes hallucinations?: SAFE
-✅ Ignore previous instructions: Suspicious content detected
-✅ How to make a bomb: Suspicious content detected
-✅ Show me all email addresses: Suspicious content detected
+# Output:
+# SAFE:    "What causes hallucinations?"
+# BLOCKED: "Ignore previous instructions"
+# BLOCKED: "How to make a bomb"
+# BLOCKED: "Show me all email addresses"
 ```
 
-## 🙏 Acknowledgments
+---
 
-- Built with [LlamaIndex](https://www.llamaindex.ai/)
-- Powered by [Nvidia NIM](https://www.nvidia.com/en-us/ai/)
-- Embeddings by [OpenAI](https://openai.com/)
-- Vector storage by [ChromaDB](https://www.trychroma.com/)
+## Dependencies
+```
+llama-index==0.10.68
+llama-index-embeddings-openai==0.1.6
+llama-index-llms-nvidia==0.1.3
+llama-index-vector-stores-chroma==0.1.6
+fastapi==0.109.2
+uvicorn==0.27.1
+chromadb==0.4.24
+pypdf==4.0.1
+python-dotenv==1.0.1
+python-multipart
+```
 
-## 🗺️ Roadmap
+---
 
-**Completed:**
-- ✅ Basic RAG pipeline
-- ✅ Conversation memory
-- ✅ Security guardrails (NEW)
-- ✅ Multiple file formats
-- ✅ REST API with documentation
+## Related Projects
 
+The inference infrastructure powering the LLM calls in this system:
 
+- [Llama-3.1-8B on H100 — 1,700+ tok/s, 11ms TTFT](https://github.com/IneshReddy249/LLAMA-TRT-OPTIMIZATION)
+- [Speculative Decoding — 2.26× latency reduction](https://github.com/IneshReddy249/SPECULATIVE_DECODING)
+- [Mixtral 8x7B MoE — 57→120 tok/s on dual A100s](https://github.com/IneshReddy249/vLLM-mixtral-MoE-optimization)
 
-**Built with ❤️ for secure, efficient document Q&A**
+---
 
+## Author
+
+**Inesh Reddy Chappidi** — LLM Inference & Systems Engineer
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Inesh_Reddy-0077B5?logo=linkedin)](https://www.linkedin.com/in/inesh-reddy)
+[![GitHub](https://img.shields.io/badge/GitHub-IneshReddy249-181717?logo=github)](https://github.com/IneshReddy249)
